@@ -1,7 +1,0 @@
-git add fileName.extention : to give a index to file
-git commit -m "your message": to commit your edit
-git push origin master: to push the new verssion to your repository
-git pull: to git the last update
-git clear : to clear screen
-git rm -r -- --cached fileName.extention:           only remove from the index
-
