@@ -1,0 +1,15 @@
+         U _E_bss
+         U _E_data
+         U _E_text
+         U _S_bss
+         U _S_data
+         U _stack_top
+00000084 W BusFault_Handler
+00000084 T Default_Handler
+00000000 D g_p_vectors
+00000084 W HardFault_Handler
+         U main
+00000084 W MemoryManage_Handler
+00000084 W NMI_Handler
+00000000 T Reset_Handler
+00000084 W UsageFault_Handler
