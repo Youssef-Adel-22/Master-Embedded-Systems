@@ -18,7 +18,7 @@ FIFO_status get_FIFO_status(FIFO_buf_t* fifo_buff){
 		return FIFO_full;
 	}
 	if(fifo_buff->count == 0){
-		printf("The List is Empty !!!");
+		//printf("The List is Empty !!!");
 		return FIFO_empty;
 	}
 	if(fifo_buff->head == (fifo_buff->base + fifo_buff->len-1))
