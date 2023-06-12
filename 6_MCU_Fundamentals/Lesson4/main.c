@@ -23,38 +23,61 @@
 #endif
 #include"Reg.h"
 typedef volatile unsigned int vuint32_t ;
-#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 // register address
 #define GPIOA_BASE 0x40010800
+#define GPIOA_CRL *(volatile uint32_t *)(GPIOA_BASE + 0x00)
 #define GPIOA_CRH *(volatile uint32_t *)(GPIOA_BASE + 0x04)
+
 #define GPIOA_ODR *(volatile uint32_t *)(GPIOA_BASE + 0x0C)
 volatile RC_reg* RCC_CR = (volatile RC_reg*)0x40021000;
 volatile CFGR_reg* RCC_CFGR = (volatile CFGR_reg*)(0x40021000+ 0x04);
 volatile APB2ENR_reg* RCC_APB2ENR= (volatile APB2ENR_reg* )(0x40021000+ 0x18);
+#define EXTI_BASE 0x40010400
+volatile EXTI_IMR_reg* EXTI_IMR = (volatile EXTI_IMR_reg*)(EXTI_BASE+ 0x00);
+volatile EXTI_RTSR_reg* EXTI_RTSR = (volatile EXTI_RTSR_reg*)(EXTI_BASE+ 0x08);
+#define NVIC_BASE 0xE000E100
+#define NVIC_SETENA *(volatile uint32_t *)(NVIC_BASE + 0x00)
+#define AFIO_BASE 0x40010000
+#define AFIO_EXTICR1 *(volatile uint32_t *)(AFIO_BASE + 0x08)
+#define EXTI_PR *(volatile uint32_t *)(EXTI_BASE + 0x14)
 int main(void)
 {
 
-	RCC_CR->RC_bits.HSI_ON =1;
-	RCC_CFGR->CFGR_bits.PLL_SRC=0;				//0: HSI oscillator clock / 2 selected as PLL input clock
-	RCC_CFGR->CFGR_bits.PLL_MUL= 0b0110;		//0110: PLL input clock x 8
-	RCC_CFGR->CFGR_bits.SW =0b10;				//10: PLL selected as system clock
-	RCC_CR->RC_bits.PLL_ON = 1;					//1: PLL ON
-	RCC_CFGR->CFGR_bits.HPRE=0;					//0xxx: SYSCLK not divided
-	RCC_CFGR->CFGR_bits.PPRE1 =0b100;			//100: HCLK divided by 2
-	RCC_CFGR->CFGR_bits.PPRE2 =0b101;			//101: HCLK divided by 4
-	RCC_APB2ENR->APB2ENR_bits.IOPA_EN=1;
-
-	//Init GPIOA
-	GPIOA_CRH &= 0xFF0FFFFF;
-	GPIOA_CRH |= 0x00200000;
-	while(1)
-	{
-		GPIOA_ODR |= 1<<13 ;
-		for (int i = 0; i < 5000; i++); // arbitrary delay
-		GPIOA_ODR &= ~(1<<13) ;
-		for (int i = 0; i < 5000; i++); // arbitrary delay
-	}
+	SystemClock_init();
+	GPIO_init();
+	AFIO_EXTICR1 =0;						//select the source input for EXTIx external interrupt PA[x] pin
+	RCC_APB2ENR->APB2ENR_bits.AFIO_EN=1;	//Alternate function I/O clock enable
+	EXTI_IMR->EXTI_IMR_bits.MR0 = 1; 		//Interrupt request from Line 0 is not masked
+	EXTI_RTSR->EXTI_RTSR_bits.TR0 = 1; 		//Rising trigger event configuration bit of line 0
+	NVIC_SETENA|= (1<<6);					//NVIC_ISER0 register enable interrupt
+	while(1);
 }
 
+void GPIO_init(void){
+	//GPIOA PortA pin13 as output pin
+	GPIOA_CRH &= 0xFF0FFFFF;
+	GPIOA_CRH |= 0x00200000;
+
+	//PortA pin0 as input pin
+	GPIOA_CRL|=(1<<2);
+
+}
+
+void SystemClock_init(void){
+	RCC_CR->RC_bits.HSI_ON =1;
+	RCC_CFGR->CFGR_bits.SW =0;
+	RCC_CFGR->CFGR_bits.HPRE=0;
+	RCC_CFGR->CFGR_bits.PPRE1 =0;
+	RCC_CFGR->CFGR_bits.PPRE2 =0;
+	RCC_APB2ENR->APB2ENR_bits.IOPA_EN=1;
+
+}
+void EXTI0_IRQHandler(void){
+	//Toggle PartA pin 13
+	GPIOA_ODR ^= (1<<13) ;
+
+	//clear Pending
+	EXTI_PR |=(1<<6);
+}
